@@ -17,7 +17,5 @@ public class TodoItem: BaseEntity
 
     public DateTime? Reminder { get; set; }
 
-    
 
-    public TodoList List { get; set; } = null!;
 }

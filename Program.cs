@@ -1,9 +1,16 @@
+using excelupload.hubs;
+using excelupload.MediatRRequests.TodoItemBatchInsert.Commands;
+using MassTransit.Mediator;
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
+builder.Services.AddMediatR(typeof(TodoItemBatchInsertCommand).Namespace);
 
 var app = builder.Build();
 
@@ -35,6 +42,29 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
+
+app.MapPost("/import", async (IFormFile file, string connectionId, IMediator mediator) =>
+{
+    if (file.Length <= 0)
+    {
+        return Results.BadRequest("Empty file");
+    }
+
+    // Invoke the MediatR request to process the file
+    string result = await mediator.Send(new TodoItemBatchInsertCommand(file, connectionId));
+
+    return Results.Ok(result);
+}).Accepts<IFormFile>("multipart/form-data");
+.WithName("GetWeatherForecast")
+.WithOpenApi();
+
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<ProgressHub>("/progressHub");
+});
+
+
 
 app.Run();
 
