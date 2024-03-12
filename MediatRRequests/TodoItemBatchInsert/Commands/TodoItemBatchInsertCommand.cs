@@ -68,7 +68,7 @@ public class TodoItemBatchInsertCommandHandler : IRequestHandler<TodoItemBatchIn
         {
             Console.WriteLine($"An error occurred while reading the Excel file: {ex.Message}");
         }
-        var chunkSize = 100;
+        var chunkSize = 1000;
         var taskId = Guid.NewGuid().ToString();
 
         var chunks = items.Chunk(chunkSize).ToList();
