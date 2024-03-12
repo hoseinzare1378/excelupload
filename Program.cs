@@ -1,20 +1,26 @@
+using excelupload;
 using excelupload.hubs;
 using excelupload.MediatRRequests.TodoItemBatchInsert.Commands;
-using MassTransit.Mediator;
+using Hangfire;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
-builder.Services.AddMediatR(typeof(TodoItemBatchInsertCommand).Namespace);
+builder.Services.AddMediatR(typeof(Program).Assembly);
+builder.Services.AddHangfire(x => x.UseSqlServerStorage(builder.Configuration.GetConnectionString("HangFireConnection")));
+builder.Services.AddHangfireServer();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+AppServices.ServiceProvider = app.Services;
+
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -43,24 +49,14 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-app.MapPost("/import", async (IFormFile file, string connectionId, IMediator mediator) =>
-{
-    if (file.Length <= 0)
-    {
-        return Results.BadRequest("Empty file");
-    }
+app.UseHangfireDashboard(); 
 
-    // Invoke the MediatR request to process the file
-    string result = await mediator.Send(new TodoItemBatchInsertCommand(file, connectionId));
-
-    return Results.Ok(result);
-}).Accepts<IFormFile>("multipart/form-data");
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.UseRouting(); 
 
 
 app.UseEndpoints(endpoints =>
 {
+    endpoints.MapControllers();
     endpoints.MapHub<ProgressHub>("/progressHub");
 });
 
